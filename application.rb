@@ -2,6 +2,8 @@ require 'rubygems'
 gem "opentox-ruby", "~> 0"
 require 'opentox-ruby'
 
+set :lock, true
+
 class Task
 	include DataMapper::Resource
 	property :id, Serial
