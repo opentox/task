@@ -4,43 +4,53 @@ require 'opentox-ruby'
 
 set :lock, true
 
-class Task
-	include DataMapper::Resource
-	property :id, Serial
-	property :uri, String, :length => 255
-  property :created_at, DateTime
-  
-  property :finished_at, DateTime
-  property :due_to_time, DateTime
-  property :pid, Integer
-  
-  property :resultURI, String, :length => 255
-  property :percentageCompleted, Float, :default => 0
-  property :hasStatus, String, :default => "Running" #possible states are: "Cancelled", "Completed", "Running", "Error"
-  property :title, String, :length => 255
-  property :creator, String, :length => 255
-  property :description, Text
-  
-  property :waiting_for, String, :length => 255
-  
-  property :errorReport, Object
+class Task < Ohm::Model
+	#include DataMapper::Resource
+	#property :id, Serial
+	attribute :uri
+  attribute :created_at
+
+  attribute :finished_at
+  attribute :due_to_time
+  attribute :pid
+
+  attribute :resultURI
+  attribute :percentageCompleted
+  attribute :hasStatus
+  attribute :title
+  attribute :creator
+  attribute :description
+
+  attribute :waiting_for
+
+  attribute :errorReport
 
   def metadata
     {
-      DC.creator => @creator,
-      DC.title => @title,
-      DC.date => @created_at,
-      OT.hasStatus => @hasStatus,
-      OT.resultURI => @resultURI,
-      OT.percentageCompleted => @percentageCompleted,
+      DC.creator => creator,
+      DC.title => title,
+      DC.date => created_at,
+      OT.hasStatus => hasStatus,
+      OT.resultURI => resultURI,
+      OT.percentageCompleted => percentageCompleted.to_f,
       #text fields are lazy loaded, using member variable can cause description to be nil
       DC.description => description   
       #:due_to_time => @due_to_timer
     }
   end
+
+=begin
+  def id
+    self.id.to_i
+  end
+  def self.create(params)
+    params[:created_at] = Time.now
+    super(params)
+  end
+=end
 end
 
-DataMapper.auto_upgrade!
+#DataMapper.auto_upgrade!
 
 # Get a list of all tasks
 # @return [text/uri-list] List of all tasks
@@ -48,10 +58,10 @@ get '/?' do
 	LOGGER.debug "list all tasks "+params.inspect
   if request.env['HTTP_ACCEPT'] =~ /html/
     response['Content-Type'] = 'text/html'
-    OpenTox.text_to_html Task.all(params).collect{|t| t.uri}.join("\n") + "\n"
+    OpenTox.text_to_html Task.all.collect{|t| t.uri}.join("\n") + "\n"
   else
     response['Content-Type'] = 'text/uri-list'
-    Task.all(params).collect{|t| t.uri}.join("\n") + "\n"
+    Task.all.collect{|t| t.uri}.join("\n") + "\n"
   end
 end
 
@@ -59,7 +69,7 @@ end
 # @param [Header] Accept Mime type of accepted representation, may be one of `application/rdf+xml,application/x-yaml,text/uri-list`
 # @return [application/rdf+xml,application/x-yaml,text/uri-list] Task representation in requested format, Accept:text/uri-list returns URI of the created resource if task status is "Completed"
 get '/:id/?' do
-  task = Task.get(params[:id])
+  task = Task[params[:id]]
   halt 404, "Task '#{params[:id]}' not found." unless task
   code = task.hasStatus == "Running" ? 202 : 200
   
@@ -70,6 +80,7 @@ get '/:id/?' do
     metadata[OT.waitingFor] = task.waiting_for
     metadata[OT.errorReport] = task.errorReport if task.errorReport
     halt code, metadata.to_yaml
+    #halt code, task.created_at
   when /html/
     response['Content-Type'] = 'text/html'
     metadata = task.metadata
@@ -107,7 +118,7 @@ end
 # @return [String] Task property
 get '/:id/:property/?' do
 	response['Content-Type'] = 'text/plain'
-  task = Task.get(params[:id])
+  task = Task[params[:id]]
   halt 404,"Task #{params[:id]} not found." unless task
   begin
     eval("task.#{params[:property]}").to_s
@@ -129,10 +140,11 @@ end
 post '/?' do
   LOGGER.debug "Creating new task with params "+params.inspect
   max_duration = params.delete(:max_duration.to_s) if params.has_key?(:max_duration.to_s)
-  task = Task.create(params)
-  task.uri = url_for("/#{task.id}", :full)
-  task.due_to_time = DateTime.parse((Time.parse(task.created_at.to_s) + max_duration.to_f).to_s) if max_duration
-  raise "Could not save task #{task.uri}" unless task.save
+  #LOGGER.debug "PARAMS: #{params.inspect}"
+  task = Task.create :created_at => Time.now, :hasStatus => "Running"
+  task.update :uri => url_for("/#{task.id}", :full)
+  #task.due_to_time = DateTime.parse((Time.parse(task.created_at.to_s) + max_duration.to_f).to_s) if max_duration
+  #raise "Could not save task #{task.uri}" unless task.save
   response['Content-Type'] = 'text/uri-list'
   task.uri + "\n"
 end
@@ -151,7 +163,7 @@ end
 # @return [] nil
 put '/:id/:hasStatus/?' do
   
-	task = Task.get(params[:id])
+	task = Task[params[:id]]
   halt 404,"Task #{params[:id]} not found." unless task
 	task.hasStatus = params[:hasStatus] unless /pid/ =~ params[:hasStatus]
   task.description = params[:description] if params[:description]
@@ -184,7 +196,7 @@ put '/:id/:hasStatus/?' do
       end
     end
     LOGGER.debug("Aborting task "+task.uri.to_s)
-		Process.kill(9,task.pid) unless task.pid.nil?
+		Process.kill(9,task.pid.to_i) unless task.pid.nil?
 		task.pid = nil
   else
      halt 402,"Invalid value for hasStatus: '"+params[:hasStatus].to_s+"'"
@@ -197,14 +209,14 @@ end
 # Delete a task
 # @return [text/plain] Status message
 delete '/:id/?' do
-	task = Task.get(params[:id])
+	task = Task[params[:id]]
   halt 404, "Task #{params[:id]} not found." unless task
 	begin
 		Process.kill(9,task.pid) unless task.pid.nil?
 	rescue
 		halt 500,"Cannot kill task with pid #{task.pid}"
 	end
-	task.destroy!
+	task.delete
 	response['Content-Type'] = 'text/plain'
 	"Task #{params[:id]} deleted."
 end
@@ -214,13 +226,14 @@ end
 delete '/?' do
 	Task.all.each do |task|
 		begin
-			Process.kill(9,task.pid) unless task.pid.nil?
+			Process.kill(9,task.pid.to_i) unless task.pid.nil?
+      task.delete
 		rescue
 			"Cannot kill task with pid #{task.pid}"
 		end
 		#task.destroy!
 	end
-  Task.auto_migrate!
+  #Task.auto_migrate!
 	response['Content-Type'] = 'text/plain'
 	"All tasks deleted."
 end
