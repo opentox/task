@@ -5,8 +5,7 @@ require 'opentox-ruby'
 set :lock, true
 
 class Task < Ohm::Model
-	#include DataMapper::Resource
-	#property :id, Serial
+	
 	attribute :uri
   attribute :created_at
 
@@ -39,15 +38,6 @@ class Task < Ohm::Model
     }
   end
 
-=begin
-  def id
-    self.id.to_i
-  end
-  def self.create(params)
-    params[:created_at] = Time.now
-    super(params)
-  end
-=end
 end
 
 #DataMapper.auto_upgrade!
@@ -140,8 +130,9 @@ end
 post '/?' do
   LOGGER.debug "Creating new task with params "+params.inspect
   max_duration = params.delete(:max_duration.to_s) if params.has_key?(:max_duration.to_s)
-  #LOGGER.debug "PARAMS: #{params.inspect}"
-  task = Task.create :created_at => Time.now, :hasStatus => "Running"
+  params[:created_at] = Time.now
+  params[:hasStatus] = "Running" unless params[:hasStatus]
+  task = Task.create params
   task.update :uri => url_for("/#{task.id}", :full)
   #task.due_to_time = DateTime.parse((Time.parse(task.created_at.to_s) + max_duration.to_f).to_s) if max_duration
   #raise "Could not save task #{task.uri}" unless task.save
@@ -213,12 +204,12 @@ delete '/:id/?' do
   halt 404, "Task #{params[:id]} not found." unless task
 	begin
 		Process.kill(9,task.pid) unless task.pid.nil?
+    task.delete
+    response['Content-Type'] = 'text/plain'
+    "Task #{params[:id]} deleted."
 	rescue
 		halt 500,"Cannot kill task with pid #{task.pid}"
 	end
-	task.delete
-	response['Content-Type'] = 'text/plain'
-	"Task #{params[:id]} deleted."
 end
 
 # Delete all tasks
@@ -228,12 +219,10 @@ delete '/?' do
 		begin
 			Process.kill(9,task.pid.to_i) unless task.pid.nil?
       task.delete
+      response['Content-Type'] = 'text/plain'
+      "All tasks deleted."
 		rescue
 			"Cannot kill task with pid #{task.pid}"
 		end
-		#task.destroy!
 	end
-  #Task.auto_migrate!
-	response['Content-Type'] = 'text/plain'
-	"All tasks deleted."
 end
