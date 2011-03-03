@@ -158,7 +158,8 @@ put '/:id/:hasStatus/?' do
   halt 404,"Task #{params[:id]} not found." unless task
 	task.hasStatus = params[:hasStatus] unless /pid/ =~ params[:hasStatus]
   task.description = params[:description] if params[:description]
-  task.errorReport = YAML.load(params[:errorReport]) if params[:errorReport]
+  #task.errorReport = YAML.load(params[:errorReport]) if params[:errorReport]
+  task.errorReport = params[:errorReport] if params[:errorReport]
   
 	case params[:hasStatus]
 	when "Completed"
