@@ -4,7 +4,8 @@ OpenTox Task
 * An OpenTox REST Webservice (http://www.opentox.org)
 * Does _not_ comply to the (incomplete) OpenTox API
 
-REST operations:
+REST operations
+---------------
 
 Get a list of all tasks     GET     /                 -                       Task URIs                             200
 Get the status of a  task   GET     /{id}/status      -                       created|started|completed|cancelled   200,404
@@ -17,10 +18,12 @@ Cancel a  task              PUT     /{id}/cancelled   ""                      - 
 Delete a  task              DELETE  /{id}             -                       -                                     200, 404
 Delete all  tasks           DELETE  /                 -                       -                                     200
 
-IMPORTANT NOTE: My framework does not accept empty PUT requests. Please send an empty parameter (e.g. with -d '' for curl) or you will receive a "411 Length Required" error.
+IMPORTANT NOTE: Our framework does not accept empty PUT requests. Please send an empty parameter (e.g. with -d '' for curl) or you will receive a "411 Length Required" error.
 
-More documentation: Source code (application.rb)
+API documentation
+-----------------
 
-Copyright (c) 2009 Christoph Helma. See LICENSE for details.
+http://rdoc.info/github/opentox/task
 
+Copyright (c) 2009-2011 Christoph Helma, Martin Guetlein, Micha Rautenberg, Andreas Maunz, David Vorgrimmler, Denis Gebele. See LICENSE for details.
 
