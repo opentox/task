@@ -107,7 +107,7 @@ get '/:id/?' do
     response['Content-Type'] = 'application/rdf+xml'
     t = OpenTox::Task.new task.uri
     t.add_metadata task.metadata
-    t.add_error_report task.errorReport
+    t.add_error_report task.errorReport if task.errorReport
     halt code, t.to_rdfxml
   when /text\/uri\-list/
     response['Content-Type'] = 'text/uri-list'
