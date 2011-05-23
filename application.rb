@@ -1,5 +1,5 @@
 require 'rubygems'
-gem "opentox-ruby", "~> 1"
+gem "opentox-ruby", "~> 2"
 require 'opentox-ruby'
 
 set :lock, true
@@ -22,7 +22,18 @@ class Task < Ohm::Model
 
   attribute :waiting_for
 
-  attribute :errorReport
+  attribute :error_report_yaml
+  
+  # convenience method to store object in redis
+  def errorReport
+    YAML.load(self.error_report_yaml) if self.error_report_yaml
+  end
+
+  # convenience method to store object in redis
+  def errorReport=(er)
+    self.error_report_yaml = er.to_yaml
+  end
+  
 
   def metadata
     {
@@ -61,7 +72,22 @@ end
 get '/:id/?' do
   task = Task[params[:id]]
   halt 404, "Task '#{params[:id]}' not found." unless task
-  code = task.hasStatus == "Running" ? 202 : 200
+  
+  # set task http code according to status
+  case task.hasStatus
+  when "Running"
+    code = 202
+  when "Cancelled"
+    code = 503
+  when "Error"
+    if task.errorReport
+       code = task.errorReport.http_code.to_i
+    else
+     code = 500
+    end
+  else #Completed
+    code = 200
+  end
   
   case request.env['HTTP_ACCEPT']
   when /yaml/ 
@@ -81,11 +107,15 @@ get '/:id/?' do
     response['Content-Type'] = 'application/rdf+xml'
     t = OpenTox::Task.new task.uri
     t.add_metadata task.metadata
-    t.add_error_report task.errorReport
-    halt t.to_rdfxml
+    t.add_error_report task.errorReport if task.errorReport
+    halt code, t.to_rdfxml
   when /text\/uri\-list/
     response['Content-Type'] = 'text/uri-list'
-    halt code, task.resultURI
+    if task.hasStatus=="Completed"
+      halt code, task.resultURI
+    else
+      halt code, task.uri
+    end
   else
     halt 400, "MIME type '"+request.env['HTTP_ACCEPT'].to_s+"' not supported, valid Accept-Headers are \"application/rdf+xml\" and \"application/x-yaml\"."
   end
@@ -158,8 +188,8 @@ put '/:id/:hasStatus/?' do
   halt 404,"Task #{params[:id]} not found." unless task
 	task.hasStatus = params[:hasStatus] unless /pid/ =~ params[:hasStatus]
   task.description = params[:description] if params[:description]
-  #task.errorReport = YAML.load(params[:errorReport]) if params[:errorReport]
-  task.errorReport = params[:errorReport] if params[:errorReport]
+  # error report comes as yaml string
+  task.error_report_yaml = params[:errorReport] if params[:errorReport]
   
 	case params[:hasStatus]
 	when "Completed"
@@ -187,7 +217,7 @@ put '/:id/:hasStatus/?' do
       rescue
       end
     end
-    LOGGER.debug("Aborting task "+task.uri.to_s)
+    LOGGER.debug("Aborting task '"+task.uri.to_s+"' with pid: '"+task.pid.to_s+"'")
 		Process.kill(9,task.pid.to_i) unless task.pid.nil?
 		task.pid = nil
   else
@@ -195,7 +225,6 @@ put '/:id/:hasStatus/?' do
   end
 	
   halt 500,"could not save task" unless task.save
-
 end
 
 # Delete a task
