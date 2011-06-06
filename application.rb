@@ -194,7 +194,7 @@ put '/:id/:hasStatus/?' do
 	case params[:hasStatus]
 	when "Completed"
 		LOGGER.debug "Task " + params[:id].to_s + " completed"
-    halt 402,"no param resultURI when completing task" unless params[:resultURI]
+    raise OpenTox::BadRequestError.new"no param resultURI when completing task" unless params[:resultURI]
     task.resultURI = params[:resultURI]
 		task.finished_at = DateTime.now
     task.percentageCompleted = 100
@@ -221,7 +221,7 @@ put '/:id/:hasStatus/?' do
 		Process.kill(9,task.pid.to_i) unless task.pid.nil?
 		task.pid = nil
   else
-     halt 402,"Invalid value for hasStatus: '"+params[:hasStatus].to_s+"'"
+     raise OpenTox::BadRequestError.new"Invalid value for hasStatus: '"+params[:hasStatus].to_s+"'"
   end
 	
   raise"could not save task" unless task.save
