@@ -100,9 +100,18 @@ get '/:id/?' do
   when /html/
     response['Content-Type'] = 'text/html'
     metadata = task.metadata
+    description = task.title ? "This task computes '"+task.title+"'" : "This task performs a process that is running on the server."
+    if task.hasStatus=="Running"
+      description << "\nRefresh your browser (presss F5) to see if the task has finished."
+    elsif task.hasStatus=="Completed"
+      description << "\nThe task is completed, click on the link below to see your result."
+    elsif task.errorReport
+      description << "\nUnfortunately, the task has failed."
+    end
+    related_links = task.hasStatus=="Completed" ? "The task result: "+task.resultURI : nil
     metadata[OT.waitingFor] = task.waiting_for
     metadata[OT.errorReport] = task.errorReport if task.errorReport
-    halt code, OpenTox.text_to_html(metadata.to_yaml)    
+    halt code, OpenTox.text_to_html(metadata.to_yaml, @subjectid, related_links, description)    
   when /application\/rdf\+xml|\*\/\*/ # matches 'application/x-yaml', '*/*'
     response['Content-Type'] = 'application/rdf+xml'
     t = OpenTox::Task.new task.uri
