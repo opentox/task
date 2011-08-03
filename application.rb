@@ -59,7 +59,7 @@ get '/?' do
 	LOGGER.debug "list all tasks "+params.inspect
   if request.env['HTTP_ACCEPT'] =~ /html/
     response['Content-Type'] = 'text/html'
-    OpenTox.text_to_html Task.all.collect{|t| t.uri}.join("\n") + "\n"
+    OpenTox.text_to_html Task.all.sort.collect{|t| t.uri}.join("\n") + "\n"
   else
     response['Content-Type'] = 'text/uri-list'
     Task.all.collect{|t| t.uri}.join("\n") + "\n"
