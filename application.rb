@@ -59,7 +59,7 @@ get '/?' do
 	LOGGER.debug "list all tasks "+params.inspect
   if request.env['HTTP_ACCEPT'] =~ /html/
     response['Content-Type'] = 'text/html'
-    OpenTox.text_to_html Task.all.collect{|t| t.uri}.join("\n") + "\n"
+    OpenTox.text_to_html Task.all.sort.collect{|t| t.uri}.join("\n") + "\n"
   else
     response['Content-Type'] = 'text/uri-list'
     Task.all.collect{|t| t.uri}.join("\n") + "\n"
@@ -71,7 +71,7 @@ end
 # @return [application/rdf+xml,application/x-yaml,text/uri-list] Task representation in requested format, Accept:text/uri-list returns URI of the created resource if task status is "Completed"
 get '/:id/?' do
   task = Task[params[:id]]
-  halt 404, "Task '#{params[:id]}' not found." unless task
+  raise OpenTox::NotFoundError.new "Task '#{params[:id]}' not found." unless task
   
   # set task http code according to status
   case task.hasStatus
@@ -100,9 +100,18 @@ get '/:id/?' do
   when /html/
     response['Content-Type'] = 'text/html'
     metadata = task.metadata
+    description = task.title ? "This task computes '"+task.title+"'" : "This task performs a process that is running on the server."
+    if task.hasStatus=="Running"
+      description << "\nRefresh your browser (presss F5) to see if the task has finished."
+    elsif task.hasStatus=="Completed"
+      description << "\nThe task is completed, click on the link below to see your result."
+    elsif task.errorReport
+      description << "\nUnfortunately, the task has failed."
+    end
+    related_links = task.hasStatus=="Completed" ? "The task result: "+task.resultURI : nil
     metadata[OT.waitingFor] = task.waiting_for
     metadata[OT.errorReport] = task.errorReport if task.errorReport
-    halt code, OpenTox.text_to_html(metadata.to_yaml)    
+    halt code, OpenTox.text_to_html(metadata.to_yaml, @subjectid, related_links, description)    
   when /application\/rdf\+xml|\*\/\*/ # matches 'application/x-yaml', '*/*'
     response['Content-Type'] = 'application/rdf+xml'
     t = OpenTox::Task.new task.uri
@@ -117,7 +126,7 @@ get '/:id/?' do
       halt code, task.uri
     end
   else
-    halt 400, "MIME type '"+request.env['HTTP_ACCEPT'].to_s+"' not supported, valid Accept-Headers are \"application/rdf+xml\" and \"application/x-yaml\"."
+    raise OpenTox::BadRequestError.new "MIME type '"+request.env['HTTP_ACCEPT'].to_s+"' not supported, valid Accept-Headers are \"application/rdf+xml\" and \"application/x-yaml\"."
   end
 end
 
@@ -139,11 +148,11 @@ end
 get '/:id/:property/?' do
 	response['Content-Type'] = 'text/plain'
   task = Task[params[:id]]
-  halt 404,"Task #{params[:id]} not found." unless task
+  raise OpenTox::NotFoundError.new"Task #{params[:id]} not found." unless task
   begin
     eval("task.#{params[:property]}").to_s
   rescue
-    halt 404,"Unknown task property #{params[:property]}."
+    raise OpenTox::NotFoundError.new"Unknown task property #{params[:property]}."
   end
 end
 
@@ -185,7 +194,7 @@ end
 put '/:id/:hasStatus/?' do
   
 	task = Task[params[:id]]
-  halt 404,"Task #{params[:id]} not found." unless task
+  raise OpenTox::NotFoundError.new"Task #{params[:id]} not found." unless task
 	task.hasStatus = params[:hasStatus] unless /pid/ =~ params[:hasStatus]
   task.description = params[:description] if params[:description]
   # error report comes as yaml string
@@ -194,7 +203,7 @@ put '/:id/:hasStatus/?' do
 	case params[:hasStatus]
 	when "Completed"
 		LOGGER.debug "Task " + params[:id].to_s + " completed"
-    halt 402,"no param resultURI when completing task" unless params[:resultURI]
+    raise OpenTox::BadRequestError.new"no param resultURI when completing task" unless params[:resultURI]
     task.resultURI = params[:resultURI]
 		task.finished_at = DateTime.now
     task.percentageCompleted = 100
@@ -202,7 +211,7 @@ put '/:id/:hasStatus/?' do
   when "pid"
     task.pid = params[:pid]
   when "Running"
-    halt 400,"Task cannot be set to running after not running anymore" if task.hasStatus!="Running"
+    raise OpenTox::BadRequestError.new"Task cannot be set to running after not running anymore" if task.hasStatus!="Running"
     task.waiting_for = params[:waiting_for] if params.has_key?("waiting_for")
     if params.has_key?("percentageCompleted")
       task.percentageCompleted = params[:percentageCompleted].to_f
@@ -221,24 +230,24 @@ put '/:id/:hasStatus/?' do
 		Process.kill(9,task.pid.to_i) unless task.pid.nil?
 		task.pid = nil
   else
-     halt 402,"Invalid value for hasStatus: '"+params[:hasStatus].to_s+"'"
+     raise OpenTox::BadRequestError.new"Invalid value for hasStatus: '"+params[:hasStatus].to_s+"'"
   end
 	
-  halt 500,"could not save task" unless task.save
+  raise"could not save task" unless task.save
 end
 
 # Delete a task
 # @return [text/plain] Status message
 delete '/:id/?' do
 	task = Task[params[:id]]
-  halt 404, "Task #{params[:id]} not found." unless task
+  raise OpenTox::NotFoundError.new "Task #{params[:id]} not found." unless task
 	begin
 		Process.kill(9,task.pid) unless task.pid.nil?
     task.delete
     response['Content-Type'] = 'text/plain'
     "Task #{params[:id]} deleted."
 	rescue
-		halt 500,"Cannot kill task with pid #{task.pid}"
+		raise"Cannot kill task with pid #{task.pid}"
 	end
 end
 
