@@ -179,6 +179,16 @@ post '/?' do
   task.uri + "\n"
 end
 
+# Clean tasks. Delete every completed task older than 30 days
+delete '/cleanup' do
+  tasklist = Task.all
+  tasklist.each do |task|
+    if task.metadata[OT.hasStatus] == 'Completed'
+      task.delete if Time.now - Time.parse(task.created_at) > 2592000
+    end
+  end
+end
+
 # Change task status. Possible URIs are: `
 # - /task/Cancelled
 # - /task/Completed: requires taskURI argument
