@@ -181,12 +181,17 @@ end
 
 # Clean tasks. Delete every completed task older than 30 days
 delete '/cleanup' do
-  tasklist = Task.all
-  tasklist.each do |task|
-    if task.metadata[OT.hasStatus] == 'Completed'
-      task.delete if Time.now - Time.parse(task.created_at) > 2592000
+  begin
+    tasklist = Task.all
+    tasklist.each do |task|
+      if task.metadata[OT.hasStatus] == 'Completed'
+        task.delete if Time.now - Time.parse(task.created_at) > 2592000
+      end
     end
+  rescue
+    return false
   end
+  return true
 end
 
 # Change task status. Possible URIs are: `
