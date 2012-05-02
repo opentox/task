@@ -1,7 +1,6 @@
-require 'rubygems'
-require 'opentox-ruby'
-require 'config/config_ru'
-run Sinatra::Application
-set :raise_errors, false
-set :show_exceptions, false
-
+require 'bundler'
+require 'bundler/setup'
+Bundler.require
+Bundler.setup
+require './application.rb'
+run OpenTox::Application
