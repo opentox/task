@@ -1,7 +1,3 @@
-require "opentox-server"
-@@class = RDF::OT.Task
-require File.join(ENV["HOME"],".opentox","config","task.rb")
-
 module OpenTox
   class Application < Service
 
@@ -28,8 +24,8 @@ module OpenTox
       end
     end
 
-    get '/:id/?' do
-      uri = uri("/#{params[:id]}")
+    get '/task/:id/?' do
+      uri = uri("/task/#{params[:id]}")
       rdf = FourStore.get(uri, request.env['HTTP_ACCEPT'])
       halt status_code(uri), rdf
     end
@@ -40,8 +36,8 @@ module OpenTox
 
 =end
 
-    put '/:id/:status/?' do
-      uri = uri params[:id]
+    put '/task/:id/:status/?' do
+      uri = uri("/task/#{params[:id]}")
       sparql = []
       case params[:status]
       when "Completed"
