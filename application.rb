@@ -3,13 +3,8 @@ module OpenTox
 
     helpers do
       def status_code uri
-        sparql = "SELECT ?o WHERE {<#{uri}> <#{RDF::OT.hasStatus}> ?o. }"
-        result = Backend::FourStore.query(sparql,nil)
-        unless result.size == 1
-        # TODO: identify error cause and fix, simultanous 4stoer access?
-        internal_server_error "Cannot find status  for '#{uri}', candidates are #{result.inspect}"
-        end
-        status = result.last.gsub(/"|'/,'').gsub(/\^\^.*$/,'') 
+        sparql = "SELECT ?o WHERE { GRAPH <#{uri}> { <#{uri}> <#{RDF::OT.hasStatus}> ?o. } }"
+        status = Backend::FourStore.query(sparql,nil).last.gsub(/"|'/,'').gsub(/\^\^.*$/,'') 
         case status
         when "Completed"
           200
@@ -18,10 +13,12 @@ module OpenTox
         when "Cancelled"
           503
         when "Error"
-          # TODO: get code from error report
-          500
+          sparql = "SELECT ?code WHERE { GRAPH <#{uri}> { <#{uri}> <#{RDF::OT.error}> ?error. ?error <#{RDF::OT.statusCode}> ?code } }"
+          code = Backend::FourStore.query(sparql,nil).last.to_i
+          code ? code : 500
         end
       end
+
     end
 
     get '/task/:id/?' do
@@ -29,12 +26,6 @@ module OpenTox
       rdf = FourStore.get(uri, request.env['HTTP_ACCEPT'])
       halt status_code(uri), rdf
     end
-
-=begin
-    get '/:id/:status/?' do
-    end
-
-=end
 
     put '/task/:id/:status/?' do
       uri = uri("/task/#{params[:id]}")
@@ -55,7 +46,6 @@ module OpenTox
         sparql << "INSERT DATA { GRAPH <#{uri}> {<#{uri}> <#{RDF::OT.hasStatus}> \"Cancelled\"}}"
         sparql << "INSERT DATA { GRAPH <#{uri}> {<#{uri}> <#{RDF::OT.finished_at}> \"#{DateTime.now}\"}}"
       when "Error"
-        puts "ERROR"
         sparql << "DELETE DATA { GRAPH <#{uri}> {<#{uri}> <#{RDF::OT.hasStatus}> \"Running\"}}"
         sparql << "INSERT DATA { GRAPH <#{uri}> {<#{uri}> <#{RDF::OT.hasStatus}> \"Error\"}}"
         sparql << "INSERT DATA { GRAPH <#{uri}> {<#{uri}> <#{RDF::OT.finished_at}> \"#{DateTime.now}\"}}"
