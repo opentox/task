@@ -1,4 +1,4 @@
-api_key.rb
+Gemfile.lock
 *.sqlite3
 tmp/*
 log/*
