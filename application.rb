@@ -23,13 +23,15 @@ module OpenTox
 
     get '/task/:id/?' do
       uri = uri("/task/#{params[:id]}")
+      code = status_code(uri)
       if request.env['HTTP_ACCEPT'] == "text/uri-list" # return resultURI
+        halt code, "" unless code == 200
         sparql = "SELECT ?o WHERE { GRAPH <#{uri}> { <#{uri}> <#{RDF::OT.resultURI}> ?o. } }"
         result_uri = Backend::FourStore.query(sparql,nil).last.gsub(/"|'/,'').gsub(/\^\^.*$/,'')
-        halt status_code(uri), result_uri
+        halt code, result_uri
       else
         rdf = FourStore.get(uri, request.env['HTTP_ACCEPT'])
-        halt status_code(uri), rdf
+        halt code, rdf
       end
     end
 
