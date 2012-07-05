@@ -45,7 +45,7 @@ module OpenTox
         sparql << "INSERT DATA { GRAPH <#{uri}> {<#{uri}> <#{RDF::OT.hasStatus}> \"Completed\"}}"
         sparql << "INSERT DATA { GRAPH <#{uri}> {<#{uri}> <#{RDF::OT.resultURI}> <#{params[:resultURI]}>}}"
         sparql << "INSERT DATA { GRAPH <#{uri}> {<#{uri}> <#{RDF::OT.percentageCompleted}> \"100.0\"}}"
-        sparql << "INSERT DATA { GRAPH <#{uri}> {<#{uri}> <#{RDF::OT.finished_at}> \"#{RDF::Literal.new(DateTime.now).to_s}\"}}"
+        sparql << "INSERT DATA { GRAPH <#{uri}> {<#{uri}> <#{RDF::OT.finished_at}> \"#{DateTime.now}\"}}"
       when "Running"
         sparql << "INSERT DATA { GRAPH <#{uri}> {<#{uri}> <#{RDF::OT.percentageCompleted}> \"#{params["percentageCompleted"].to_f}\"^^#{RDF::XSD.float}}" if params["percentageCompleted"]
         #task.waiting_for = params[:waiting_for] if params.has_key?("waiting_for")
