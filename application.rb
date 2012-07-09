@@ -95,6 +95,7 @@ get '/:id/?' do
     metadata = task.metadata
     metadata[OT.waitingFor] = task.waiting_for
     metadata[OT.errorReport] = task.errorReport if task.errorReport
+    metadata["PID"] = task.pid
     halt code, metadata.to_yaml
     #halt code, task.created_at
   when /html/
