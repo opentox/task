@@ -68,8 +68,26 @@ end
 
 get '/latest' do
   response['Content-Type'] = 'text/plain'
-  t = Task.all.sort.collect[-1]
-  "'#{t.uri}' --- '#{t.created_at}' --- '#{t.hasStatus}' --- '#{t.title}'\n"
+  ts = Task.all.sort
+  t = nil
+  ts.size.times do |i|
+    t = Task[ts.size-i]
+    if Time.now - Time.parse(t.created_at) > 60*60*24
+      t = nil
+      break
+    elsif t.hasStatus=="Running"
+      break
+    end
+    t = nil
+  end
+  s = ""
+  s << "'#{t.uri}' --- '#{t.created_at}' --- '#{t.hasStatus}' --- '#{t.title}'\n" if t
+  if t==nil or t!=ts[-1]
+    s << "...\n" if t
+    t = ts[-1]
+    s << "'#{t.uri}' --- '#{t.created_at}' --- '#{t.hasStatus}' --- '#{t.title}'\n"
+  end
+  s
 end
 
 # Get task representation
