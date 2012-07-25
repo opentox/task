@@ -71,7 +71,7 @@ get '/latest' do
   ts = Task.all.sort
   running = []
   ts.size.times do |i|
-    t = Task[ts.size-i]
+    t = ts[ts.size-i]
     if Time.now - Time.parse(t.created_at) > 60*60*24
       break
     elsif t.hasStatus=="Running"
