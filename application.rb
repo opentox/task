@@ -66,6 +66,12 @@ get '/?' do
   end
 end
 
+get '/latest' do
+  response['Content-Type'] = 'text/plain'
+  t = Task.all.sort.collect[-1]
+  "'#{t.uri}' --- '#{t.created_at}' --- '#{t.hasStatus}' --- '#{t.title}'\n"
+end
+
 # Get task representation
 # @param [Header] Accept Mime type of accepted representation, may be one of `application/rdf+xml,application/x-yaml,text/uri-list`
 # @return [application/rdf+xml,application/x-yaml,text/uri-list] Task representation in requested format, Accept:text/uri-list returns URI of the created resource if task status is "Completed"
