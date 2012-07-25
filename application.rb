@@ -193,7 +193,7 @@ delete '/cleanup' do
     tasklist.each do |task|
       if task.metadata[OT.hasStatus] == 'Completed'
         LOGGER.debug "deleting: #{task.id}"
-        task.delete if Time.now - Time.parse(task.created_at) > 2592000
+        task.delete if Time.now - Time.parse(task.created_at) > (2592000/30)
       end
     end
   rescue
