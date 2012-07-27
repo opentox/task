@@ -78,15 +78,9 @@ get '/latest' do
       running << t
     end
   end
-  s = ""
-  running.each do |t|
-    s << "'#{t.uri}' --- '#{t.created_at}' --- '#{t.hasStatus}' --- '#{t.title}'\n"
-  end
-  if running.size==nil or running[-1]!=ts[-1]
-    t = ts[-1]
-    s << "'#{t.uri}' --- '#{t.created_at}' --- '#{t.hasStatus}' --- '#{t.title}'\n"
-  end
-  s
+  running.reverse!
+  running << ts[-1] if running.size==nil or running[-1]!=ts[-1]
+  running.collect{|t| "'#{t.uri}' --- '#{t.created_at}' --- '#{t.hasStatus}' --- '#{t.title}'"}.join("\n")+"\n"
 end
 
 # Get task representation
