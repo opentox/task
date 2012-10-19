@@ -253,18 +253,19 @@ put '/:id/:hasStatus/?' do
     end
 	when /Cancelled|Error/
     if task.waiting_for and task.waiting_for.uri?
-      # try cancelling the child task
-      begin
-        w = OpenTox::Task.find(task.waiting_for)
-        w.cancel if w.running?
-      rescue
+      Thread.new do # try cancelling the child task (in thread to avoid deadlocks) 
+        begin
+          w = OpenTox::Task.find(task.waiting_for)
+          w.cancel if w.running?
+        rescue
+        end
       end
     end
     LOGGER.debug("Aborting task '"+task.uri.to_s+"' with pid: '"+task.pid.to_s+"'")
 		Process.kill(9,task.pid.to_i) unless task.pid.nil?
 		task.pid = nil
   else
-     raise OpenTox::BadRequestError.new"Invalid value for hasStatus: '"+params[:hasStatus].to_s+"'"
+     raise OpenTox::BadRequestError.new("Invalid value for hasStatus: '"+params[:hasStatus].to_s+"'")
   end
 	
   raise"could not save task" unless task.save
