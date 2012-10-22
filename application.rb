@@ -129,7 +129,8 @@ get '/:id/?' do
     related_links = task.hasStatus=="Completed" ? "The task result: "+task.resultURI : nil
     metadata[OT.waitingFor] = task.waiting_for
     metadata[OT.errorReport] = task.errorReport if task.errorReport
-    halt code, OpenTox.text_to_html(metadata.to_yaml, @subjectid, related_links, description)    
+    task.inspect # to load all stuff for to_yaml
+    halt code, OpenTox.text_to_html([metadata,task].to_yaml, @subjectid, related_links, description)    
   when /application\/rdf\+xml|\*\/\*/ # matches 'application/x-yaml', '*/*'
     response['Content-Type'] = 'application/rdf+xml'
     t = OpenTox::Task.new task.uri
