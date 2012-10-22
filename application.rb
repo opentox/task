@@ -293,7 +293,8 @@ delete '/?' do
   i = 0
 	Task.all.each do |task|
     begin
-      unless task.hasStatus=="Running"
+      # delete running tasks only if older than one day
+      if task.hasStatus!="Running" or (Time.now-Time.parse(task.created_at)>86400)
         #Process.kill(9,task.pid.to_i) unless task.pid.nil?
         task.delete
         LOGGER.debug "deleted task #{task.id}"
