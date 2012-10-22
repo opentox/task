@@ -290,14 +290,19 @@ end
 # Delete all tasks
 # @return [text/plain] Status message
 delete '/?' do
+  i = 0
 	Task.all.each do |task|
-		begin
-			Process.kill(9,task.pid.to_i) unless task.pid.nil?
-      task.delete
-      response['Content-Type'] = 'text/plain'
-      "All tasks deleted."
+    begin
+      unless task.hasStatus=="Running"
+        #Process.kill(9,task.pid.to_i) unless task.pid.nil?
+        task.delete
+        LOGGER.debug "deleted task #{task.id}"
+        i += 1
+      end
 		rescue
-			"Cannot kill task with pid #{task.pid}"
+			LOGGER.debug "cannot kill task with pid #{task.pid}"
 		end
 	end
+  response['Content-Type'] = 'text/plain'
+  "#{i} tasks deleted."
 end
