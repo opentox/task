@@ -67,7 +67,6 @@ get '/?' do
 end
 
 get '/latest' do
-  response['Content-Type'] = 'text/plain'
   ts = Task.all.sort
   running = []
   ts.size.times do |i|
@@ -80,7 +79,14 @@ get '/latest' do
   end
   running.reverse!
   running << ts[-1] if running.size==nil or running[-1]!=ts[-1]
-  running.collect{|t| "'#{t.uri}' --- '#{t.created_at}' --- '#{t.hasStatus}' --- '#{t.title}'"}.join("\n")+"\n"
+  res = running.collect{|t| "'#{t.uri}' --- '#{t.created_at}' --- '#{t.hasStatus}' --- '#{t.title}'"}.join("\n")+"\n"
+  if request.env['HTTP_ACCEPT'] =~ /html/
+    response['Content-Type'] = 'text/html'
+    OpenTox.text_to_html res
+  else
+    response['Content-Type'] = 'text/plain'
+    res
+  end    
 end
 
 # Get task representation
