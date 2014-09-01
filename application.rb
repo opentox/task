@@ -72,6 +72,18 @@ module OpenTox
       end
       sparql.each{|q| Backend::FourStore.update q}
     end
+    
+    delete '/task/:id/?' do
+      uri = uri("/task/#{params[:id]}")
+      sparql = "SELECT ?o WHERE { GRAPH <#{uri}> { <#{uri}> <#{RDF::OT.created_at}> ?o. } }"
+      created_at = Backend::FourStore.query(sparql,"text/uri-list").gsub(/"|'/,'').gsub(/\^\^.*$/,'')
+      created = DateTime.parse(created_at)
+      today = DateTime.now
+      daysback = (today - 30)
+      (created <= daysback) ? (result = Backend::FourStore.delete uri) : (bad_request_error "Not allowed.")
+      # prevent backend type and version displayed
+      result.split("\n").first
+    end
 
   end
 end
