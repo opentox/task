@@ -24,6 +24,13 @@ module OpenTox
 
     end
 
+    head "/task/?" do
+    end
+
+    head '/task/:id/?' do
+      halt 404 unless FourStore.head(@uri.split('?').first)
+    end
+
     get '/task/:id/?' do
       uri = uri("/task/#{params[:id]}")
       code = status_code(uri)
