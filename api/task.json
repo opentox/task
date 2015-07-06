@@ -101,6 +101,22 @@
                 "parameters": [
                     {
                         "$ref": "#/parameters/taskid"
+                    },
+                    {
+                        "name": "accept",
+                        "in": "header",
+                        "description": "Accepted Content Type",
+                        "required": false,
+                        "type": "string",
+                        "default": "text/uri-list",
+                        "enum": [
+                            "text/uri-list",
+                            "text/turtle",
+                            "text/plain",
+                            "text/html",
+                            "application/rdf+xml",
+                            "application/sparql-results+xml"
+                        ]
                     }
                 ],
                 "produces": [
