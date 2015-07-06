@@ -1,0 +1,218 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "An OpenTox REST Webservice for tasks\n",
+        "version": "5.0.0pre1",
+        "title": "OpenTox Task Service",
+        "contact": {
+            "name": "in silico toxicology",
+            "email": "service@in-silico.ch"
+        },
+        "license": {
+            "name": "GNU GENERAL PUBLIC LICENSE",
+            "url": "https://github.com/opentox/task/blob/master/LICENSE"
+        }
+    },
+    "host": "enm.in-silico.ch",
+    "basePath": "/",
+    "schemes": [
+        "https"
+    ],
+    "paths": {
+        "/task": {
+            "head": {
+                "tags": [
+                    "task"
+                ],
+                "description": "for service check",
+                "responses": {
+                    "200": {
+                        "$ref": "#/responses/200"
+                    },
+                    "400": {
+                        "$ref": "#/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/responses/401"
+                    },
+                    "404": {
+                        "$ref": "#/responses/404"
+                    },
+                    "500": {
+                        "$ref": "#/responses/500"
+                    }
+                }
+            },
+            "get": {
+                "tags": [
+                    "task"
+                ],
+                "description": "Get a list of all tasks",
+                "parameters": [
+                    {
+                        "name": "accept",
+                        "in": "header",
+                        "description": "requested Content-Type",
+                        "required": true,
+                        "type": "string",
+                        "enum": [
+                            "text/uri-list",
+                            "text/turtle",
+                            "text/plain",
+                            "text/html",
+                            "application/rdf+xml",
+                            "application/sparql-results+xml"
+                        ]
+                    }
+                ],
+                "produces": [
+                    "text/uri-list",
+                    "text/turtle",
+                    "text/plain",
+                    "text/html",
+                    "application/rdf+xml",
+                    "application/sparql-results+xml"
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/responses/200"
+                    },
+                    "400": {
+                        "$ref": "#/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/responses/401"
+                    },
+                    "404": {
+                        "$ref": "#/responses/404"
+                    },
+                    "500": {
+                        "$ref": "#/responses/500"
+                    }
+                }
+            }
+        },
+        "/task/{id}": {
+            "get": {
+                "tags": [
+                    "task"
+                ],
+                "description": "Get a task representation or the result URI of the task",
+                "parameters": [
+                    {
+                        "$ref": "#/parameters/taskid"
+                    }
+                ],
+                "produces": [
+                    "text/uri-list",
+                    "text/turtle",
+                    "text/plain",
+                    "text/html",
+                    "application/rdf+xml",
+                    "application/sparql-results+xml"
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/responses/200"
+                    },
+                    "202": {
+                        "$ref": "#/responses/202"
+                    },
+                    "400": {
+                        "$ref": "#/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/responses/401"
+                    },
+                    "404": {
+                        "$ref": "#/responses/404"
+                    },
+                    "500": {
+                        "$ref": "#/responses/500"
+                    }
+                }
+            }
+        },
+        "/task/{id}/{status}": {
+            "put": {
+                "tags": [
+                    "task"
+                ],
+                "description": "Updates the status of a task",
+                "parameters": [
+                    {
+                        "$ref": "#/parameters/taskid"
+                    },
+                    {
+                        "name": "status",
+                        "in": "path",
+                        "description": "Status to set",
+                        "required": true,
+                        "type": "string",
+                        "enum": [
+                            "Error",
+                            "Cancelled",
+                            "Running",
+                            "Completed"
+                        ]
+                    }
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "responses": {
+                    "200": {
+                        "$ref": "#/responses/200"
+                    },
+                    "400": {
+                        "$ref": "#/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/responses/401"
+                    },
+                    "404": {
+                        "$ref": "#/responses/404"
+                    },
+                    "500": {
+                        "$ref": "#/responses/500"
+                    }
+                }
+            }
+        }
+    },
+    "parameters": {
+        "taskid": {
+            "name": "id",
+            "in": "path",
+            "description": "task id",
+            "required": true,
+            "type": "string"
+        }
+    },
+    "responses": {
+        "200": {
+            "description": "OK"
+        },
+        "202": {
+            "description": "Accepted"
+        },
+        "400": {
+            "description": "Bad Request"
+        },
+        "401": {
+            "description": "Unauthorized"
+        },
+        "404": {
+            "description": "Resource Not Found"
+        },
+        "500": {
+            "description": "Server Error"
+        }
+    },
+    "tags": [
+        {
+            "name": "task",
+            "description": "OpenTox Task Service"
+        }
+    ]
+}
